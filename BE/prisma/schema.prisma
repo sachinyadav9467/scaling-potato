@@ -1,0 +1,182 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql" // Change to "postgresql" if using PostgreSQL
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid()) // For MySQL, consider using @default(cuid()) or @default(uuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  name          String
+  role          String    // 'student' | 'tutor'
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  courses         Course[]
+  assignments     Assignment[]
+  submissions     Submission[]
+  videos          Video[]
+  videoNotes      VideoNote[]
+  assignmentNotes AssignmentNote[]
+  refreshTokens   RefreshToken[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model Course {
+  id          String      @id @default(uuid())
+  userId      String      @map("user_id")
+  name        String
+  color       String      // Hex color
+  icon        String      // Emoji
+  tutor       String
+  startDate   DateTime    @db.Date @map("start_date")
+  endDate     DateTime    @db.Date @map("end_date")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignments Assignment[]
+  videos      Video[]     // Videos for this course
+
+  @@index([userId])
+  @@index([startDate, endDate])
+  @@map("courses")
+}
+
+model Assignment {
+  id            String      @id @default(uuid())
+  userId        String      @map("user_id")
+  courseId      String      @map("course_id")
+  title         String
+  description   String?
+  type          String      // 'one-time' | 'daily' | 'weekly' | 'monthly'
+  assignedDate  DateTime    @db.Date @map("assigned_date")
+  dueDate       DateTime    @db.Date @map("due_date")
+  submissionType String     @map("submission_type") // 'text' | 'file' | 'link'
+  status        String      @default("not_started") // 'not_started' | 'in_progress' | 'submitted' | 'reviewed'
+  scheduleRule  Json?       @map("schedule_rule") // {daysOfWeek: [1,3,5]} for weekly
+  feedback      String?
+  score         Int?        // 0-100
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course        Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  submissions   Submission[]
+  notes         AssignmentNote[]
+
+  @@index([courseId])
+  @@index([userId])
+  @@index([assignedDate, dueDate])
+  @@index([status])
+  @@index([type])
+  @@map("assignments")
+}
+
+model Submission {
+  id            String      @id @default(uuid())
+  userId        String      @map("user_id")
+  assignmentId  String      @map("assignment_id")
+  date          DateTime    @db.Date
+  content       String?     // For text submissions
+  fileUrl       String?     @map("file_url") // For file submissions
+  linkUrl       String?     @map("link_url") // For link submissions
+  submissionType String     @map("submission_type") // 'text' | 'file' | 'link'
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignment    Assignment  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, date, userId])
+  @@index([assignmentId])
+  @@index([userId])
+  @@index([date])
+  @@map("submissions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @db.Text // JWT tokens can be long, use TEXT instead of VARCHAR
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Video {
+  id          String      @id @default(uuid())
+  courseId    String      @map("course_id")
+  userId      String      @map("user_id") // Creator of the video (teacher/tutor)
+  date        DateTime    @db.Date // Which day this video is for
+  title       String
+  videoUrl    String      @map("video_url")
+  duration    Int?        // Duration in seconds
+  watched     Boolean     @default(false)
+  watchedAt   DateTime?   @map("watched_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes       VideoNote[]
+
+  @@unique([courseId, date, userId]) // One video per course per day per creator
+  @@index([courseId])
+  @@index([userId])
+  @@index([date])
+  @@map("videos")
+}
+
+model VideoNote {
+  id          String      @id @default(uuid())
+  videoId     String      @map("video_id")
+  userId      String      @map("user_id") // Who added the note (teacher/tutor)
+  title       String
+  fileUrl     String      @map("file_url")  // URL to the notes file
+  fileName    String      @map("file_name")  // Original filename
+  fileSize    Int?        @map("file_size")  // Size in bytes
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  video       Video       @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([videoId])
+  @@index([userId])
+  @@map("video_notes")
+}
+
+model AssignmentNote {
+  id          String      @id @default(uuid())
+  assignmentId String    @map("assignment_id")
+  userId      String      @map("user_id") // Who added the note (student)
+  title       String
+  fileUrl     String      @map("file_url")  // URL to the notes file (PDF)
+  fileName    String      @map("file_name")  // Original filename
+  fileSize    Int?        @map("file_size")  // Size in bytes
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  assignment  Assignment  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId])
+  @@index([userId])
+  @@map("assignment_notes")
+}
