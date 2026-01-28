@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { formatDate, getMonthDates, addMonthsToDate, subMonthsFromDate, isSameDate, startOfMonth, endOfMonth } from '../utils/dateUtils';
 import { getMonthlyMetrics } from '../utils/metrics';
@@ -8,6 +9,8 @@ import MetricsCard from '../components/MetricsCard';
 import { Link } from 'react-router-dom';
 
 const MonthlyView = () => {
+  const location = useLocation();
+  const isActive = location.pathname === '/monthly';
   const { currentDate, setCurrentDate, assignments, getAssignmentsForDate, getCourse } = useApp();
   const [metrics, setMetrics] = useState(null);
   const [dayAssignmentsMap, setDayAssignmentsMap] = useState({});
@@ -33,6 +36,7 @@ const MonthlyView = () => {
   const isCurrentMonth = isSameDate(monthStart, startOfMonth(new Date()));
 
   useEffect(() => {
+    if (!isActive) return;
     const loadMetrics = async () => {
       try {
         const year = currentDate.getFullYear();
@@ -47,10 +51,11 @@ const MonthlyView = () => {
       }
     };
     loadMetrics();
-  }, [currentDate, assignments]);
+  }, [currentDate, assignments, isActive]);
 
   // Load assignments for each day in the month
   useEffect(() => {
+    if (!isActive) return;
     const loadDayAssignments = async () => {
       const assignmentsMap = {};
       for (const date of monthDates) {
@@ -65,7 +70,7 @@ const MonthlyView = () => {
       setDayAssignmentsMap(assignmentsMap);
     };
     loadDayAssignments();
-  }, [currentDate, getAssignmentsForDate]);
+  }, [currentDate, getAssignmentsForDate, isActive]);
 
   const getAssignmentDensity = (date) => {
     const dateStr = formatDate(date, 'yyyy-MM-dd');

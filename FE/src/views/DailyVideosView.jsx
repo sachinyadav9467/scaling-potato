@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, Plus } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { formatDate, getPreviousDay, getNextDay, isSameDate } from '../utils/dateUtils';
 import VideoCard from '../components/videos/VideoCard';
@@ -7,6 +8,8 @@ import VideoMetrics from '../components/videos/VideoMetrics';
 import AddVideoModal from '../components/videos/AddVideoModal';
 
 const DailyVideosView = () => {
+  const location = useLocation();
+  const isActive = location.pathname === '/videos' || location.pathname === '/student';
   const {
     currentDate,
     setCurrentDate,
@@ -46,8 +49,10 @@ const DailyVideosView = () => {
   };
 
   useEffect(() => {
-    loadVideos();
-  }, [currentDate, refreshKey]); // Refresh when date or key changes
+    if (isActive) {
+      loadVideos();
+    }
+  }, [currentDate, refreshKey, isActive]); // Refresh when date or key changes, but only if view is active
 
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);

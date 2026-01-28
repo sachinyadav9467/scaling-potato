@@ -71,7 +71,12 @@ export const validateCreateAssignment = validate([
   body('assignedDate').isISO8601().withMessage('Assigned date must be in YYYY-MM-DD format'),
   body('dueDate').isISO8601().withMessage('Due date must be in YYYY-MM-DD format'),
   body('submissionType').isIn(['text', 'file', 'link']).withMessage('Submission type must be text, file, or link'),
-  body('scheduleRule').optional().isObject().withMessage('Schedule rule must be an object')
+  body('scheduleRule').optional({ nullable: true, checkFalsy: true }).custom((value) => {
+    if (value !== null && value !== undefined && typeof value !== 'object') {
+      throw new Error('Schedule rule must be an object or null');
+    }
+    return true;
+  })
 ]);
 
 export const validateUpdateAssignment = validate([

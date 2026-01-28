@@ -90,6 +90,13 @@ export const AppProvider = ({ children }) => {
       return updated;
     } catch (err) {
       console.error('Error updating course:', err);
+      // Reload courses from server on error to ensure consistency
+      try {
+        const coursesData = await coursesAPI.getAll();
+        setCourses(coursesData.courses || []);
+      } catch (reloadErr) {
+        console.error('Error reloading courses:', reloadErr);
+      }
       throw err;
     }
   };
@@ -97,7 +104,14 @@ export const AppProvider = ({ children }) => {
   const addNewCourse = async (courseData) => {
     try {
       const newCourse = await coursesAPI.create(courseData);
-      setCourses((prev) => [...prev, newCourse]);
+      setCourses((prev) => {
+        // Check if course already exists to avoid duplicates
+        const exists = prev.some(c => c.id === newCourse.id);
+        if (exists) {
+          return prev.map(c => c.id === newCourse.id ? newCourse : c);
+        }
+        return [...prev, newCourse].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      });
       return newCourse;
     } catch (err) {
       console.error('Error creating course:', err);
@@ -123,7 +137,14 @@ export const AppProvider = ({ children }) => {
   const addNewAssignment = async (assignmentData) => {
     try {
       const newAssignment = await assignmentsAPI.create(assignmentData);
-      setAssignments((prev) => [...prev, newAssignment]);
+      setAssignments((prev) => {
+        // Check if assignment already exists to avoid duplicates
+        const exists = prev.some(a => a.id === newAssignment.id);
+        if (exists) {
+          return prev.map(a => a.id === newAssignment.id ? newAssignment : a);
+        }
+        return [...prev, newAssignment];
+      });
       return newAssignment;
     } catch (err) {
       console.error('Error creating assignment:', err);
@@ -142,6 +163,13 @@ export const AppProvider = ({ children }) => {
       return updated;
     } catch (err) {
       console.error('Error updating assignment:', err);
+      // Reload assignments from server on error to ensure consistency
+      try {
+        const assignmentsData = await assignmentsAPI.getAll();
+        setAssignments(assignmentsData.assignments || []);
+      } catch (reloadErr) {
+        console.error('Error reloading assignments:', reloadErr);
+      }
       throw err;
     }
   };

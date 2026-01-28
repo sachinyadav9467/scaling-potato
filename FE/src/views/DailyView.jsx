@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { getAssignmentsForDate as filterAssignmentsByDate } from '../utils/data';
 import { formatDate, getPreviousDay, getNextDay, isSameDate } from '../utils/dateUtils';
@@ -12,6 +13,8 @@ import AddAssignmentModal from '../components/AddAssignmentModal';
 import MetricsCard from '../components/MetricsCard';
 
 const DailyView = () => {
+  const location = useLocation();
+  const isActive = location.pathname === '/' || location.pathname === '/daily' || location.pathname === '/teacher';
   const {
     currentDate,
     setCurrentDate,
@@ -49,8 +52,10 @@ const DailyView = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, [currentDate, refreshKey]); // Refresh when date or key changes
+    if (isActive) {
+      loadData();
+    }
+  }, [currentDate, refreshKey, isActive]); // Refresh when date or key changes, but only if view is active
 
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);

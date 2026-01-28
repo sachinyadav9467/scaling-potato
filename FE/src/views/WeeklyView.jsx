@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { formatDate, getWeekDates, addWeeksToDate, subWeeksFromDate, isSameDate } from '../utils/dateUtils';
 import { getWeeklyMetrics } from '../utils/metrics';
@@ -9,12 +10,15 @@ import MetricsCard from '../components/MetricsCard';
 import { Link } from 'react-router-dom';
 
 const WeeklyView = () => {
+  const location = useLocation();
+  const isActive = location.pathname === '/weekly';
   const { currentDate, setCurrentDate, assignments, getAssignmentsForDate, getCourse, courses } = useApp();
   const [metrics, setMetrics] = useState(null);
   const [dayAssignmentsMap, setDayAssignmentsMap] = useState({});
   const weekDates = getWeekDates(currentDate);
 
   useEffect(() => {
+    if (!isActive) return;
     const loadMetrics = async () => {
       try {
         const dateStr = formatDate(currentDate, 'yyyy-MM-dd');
@@ -28,10 +32,11 @@ const WeeklyView = () => {
       }
     };
     loadMetrics();
-  }, [currentDate, assignments]);
+  }, [currentDate, assignments, isActive]);
 
   // Load assignments for each day in the week - batch requests
   useEffect(() => {
+    if (!isActive) return;
     const loadDayAssignments = async () => {
       const assignmentsMap = {};
       // Batch all requests in parallel instead of sequential
@@ -57,7 +62,7 @@ const WeeklyView = () => {
     if (weekDates.length > 0) {
       loadDayAssignments();
     }
-  }, [currentDate]); // Only depend on currentDate, not weekDates array reference
+  }, [currentDate, isActive]); // Only depend on currentDate, not weekDates array reference
 
   const handlePreviousWeek = () => {
     setCurrentDate(subWeeksFromDate(currentDate, 1));

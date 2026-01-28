@@ -47,10 +47,8 @@ const AddAssignmentModal = ({ onClose }) => {
         // Add schedule rule only for weekly assignments with valid daysOfWeek
         if (formData.type === 'weekly' && formData.daysOfWeek && formData.daysOfWeek.length > 0) {
           assignment.scheduleRule = { daysOfWeek: formData.daysOfWeek };
-        } else {
-          // For non-weekly assignments, don't include scheduleRule
-          assignment.scheduleRule = null;
         }
+        // For non-weekly assignments, don't include scheduleRule at all
         
         await addNewAssignment(assignment);
         onClose();
